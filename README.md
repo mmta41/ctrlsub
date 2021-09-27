@@ -1,18 +1,19 @@
-#CtrlSub 
-###subdomain take over tools
+# CtrlSub 
+
+### subdomain take over tools
 
 
 The project is inspired by [SubOver](https://github.com/Ice3man543/SubOver)
 
 
 
-##Install
+## Install
 ```
 go get github.com/mmta41/ctrlsub
 ```
 
 
-##Usage
+## Usage
 ```
 ./ctrlsub -l sub.host.com
 ```
