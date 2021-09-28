@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -37,18 +38,39 @@ func main() {
 		log.Fatal(err)
 	}
 
-	l := strings.Split(config.HostsList, ",")
+	targets := strings.Split(config.HostsList, ",")
 
-	for _, s := range l {
-		l := &LogFormat{
-			Status:   false,
-			Target:   s,
-			Cname:    "",
-			Provider: "",
-		}
-		log.WithFields(l.toField(nil)).Debugln("Testing")
-		Checker(s, l)
+	hosts := make(chan string, 0)
+
+	wg := sync.WaitGroup{}
+	wg.Add(config.Threads)
+
+	for config.Threads > 0 {
+		config.Threads -= 1
+		go func() {
+			for {
+				host := <-hosts
+				if host == "" {
+					break
+				}
+				state := &LogFormat{
+					Status:   false,
+					Target:   host,
+					Cname:    "",
+					Provider: "",
+				}
+				log.WithFields(state.toField(nil)).Debugln("Testing")
+				Checker(host, state)
+			}
+			wg.Done()
+		}()
 	}
+
+	for _, h := range targets {
+		hosts <- h
+	}
+	close(hosts)
+	wg.Wait()
 }
 
 func Checker(target string, state *LogFormat) {
@@ -101,11 +123,11 @@ func Check(target string, p *Provider, state *LogFormat) {
 func parseArguments() {
 	flag.IntVar(&config.Threads, "t", 20, "Number of threads to use")
 	flag.BoolVar(&config.Debug, "v", false, "Debug mode")
-	flag.StringVar(&config.HostsList, "l", "", "Comma separated hosts to check takeovers on")
+	flag.StringVar(&config.HostsList, "u", "", "Comma separated hosts to check takeovers on")
 	flag.BoolVar(&config.FallbackProtocol, "fb", true, "Fallback protocol http <=> https vice versa")
 	flag.BoolVar(&config.ForceHTTPS, "https", false, "Force HTTPS connections")
 	flag.BoolVar(&config.JSON, "j", false, "Output format as json")
-	flag.BoolVar(&config.JSONPretty, "jp", false, "json pretty print")
+	flag.BoolVar(&config.JSONPretty, "jp", false, "Output format as json with pretty print")
 	flag.BoolVar(&config.Quote, "qa", false, "Quote all fields")
 	flag.BoolVar(&config.QuoteEmpty, "qe", false, "Quote empty fields")
 	flag.BoolVar(&config.Colorize, "c", false, "Colorize output")
@@ -123,7 +145,7 @@ func parseArguments() {
 }
 
 func validateArguments() {
-	required := []string{"l"}
+	required := []string{"u"}
 	flag.Parse()
 
 	seen := make(map[string]bool)
@@ -151,7 +173,7 @@ func configLogger() {
 		SortingFunc:      SortLog,
 		QuoteEmptyFields: config.QuoteEmpty,
 	})
-	if config.JSON {
+	if config.JSON || config.JSONPretty {
 		log.SetFormatter(&log.JSONFormatter{
 			TimestampFormat:  "",
 			PrettyPrint:      config.JSONPretty,

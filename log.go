@@ -35,19 +35,25 @@ func SortLog(list []string) {
 	if len(list) < 5 {
 		return
 	}
-	hasError := false
-	for _, l := range list {
-		if l == "error" {
-			hasError = true
-			break
-		}
+
+	order := map[string]int{
+		"status":   0,
+		"done":     1,
+		"target":   2,
+		"cname":    3,
+		"provider": 4,
+		"error":    5,
+		"msg":      6,
+		"level":    7,
 	}
-	list[0] = "status"
-	list[1] = "target"
-	list[2] = "cname"
-	list[3] = "provider"
-	list[4] = "done"
-	if hasError {
-		list[5] = "error"
+
+	for i, l := range list {
+		for j, l2 := range list {
+			if order[l] > order[l2] {
+				t := list[i]
+				list[i] = list[j]
+				list[j] = t
+			}
+		}
 	}
 }

@@ -17,3 +17,9 @@ go get github.com/mmta41/ctrlsub
 ```
 ./ctrlsub -l sub.host.com
 ```
+
+
+## Todo
+- [X] Use multiple threads for scan
+- [ ] Read target list from file
+- [ ] Read target list from stdin 
